@@ -1,0 +1,22 @@
+{
+  "name": "oculus",
+  "version": "0.0.1",
+  "description": "Oculus is a modular command and control communications handler.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "InfoSec",
+    "Penetration Testing"
+  ],
+  "author": "Matthew Toussain (0sm0s1z)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.14.11"
+  }
+}
