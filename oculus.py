@@ -65,7 +65,8 @@ from implants.gryffindor.c2profile import *
 # FUTURE UPDATE: Manage data i/o with MongoDB and Emergence and Prism Shell
 # from lib.dbmgr import *
 
-# FUTURE UPDATE: wtf is this port for again???
+# port to listen on for Oculus
+# TODO: read this from program arguments
 PORT = 29000
 
 class OculusSvr:
@@ -184,6 +185,8 @@ class Emergence:
       tasklist = json.dumps(data)
       #data = "retinfo"
       return data
+
+# TODO: move this into a main function
 
 # Start server
 print "Starting..."
