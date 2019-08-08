@@ -1,3 +1,4 @@
+import sys
 import BaseHTTPServer
 import SimpleHTTPServer
 import SocketServer
@@ -12,6 +13,7 @@ import hashlib
 import json
 import requests
 from datetime import *
+import time
 from Crypto.Cipher import AES
 from Crypto import Random
 from multiprocessing import Process, Queue
@@ -67,10 +69,12 @@ from implants.gryffindor.c2profile import *
 
 # FUTURE UPDATE: wtf is this port for again???
 PORT = 29000
+USER = "admin"
+PASS = sys.argv[1]
 
 class OculusSvr:
    def oServer(self):
-      print "Executing Oculus Control Server Thread"
+      print("Executing Oculus Control Server Thread")
       Handler = ServerHandler
 
       SocketServer.TCPServer.allow_reuse_address=True
@@ -134,7 +138,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
          return
       else:
-         #print self.path
+         #print(self.path)
          SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
    def do_POST(self):
@@ -148,7 +152,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
          self.end_headers()
 
          update = json.loads(self.data_string)
-         # print update["action"]["start_listener"]["type"]
+         # print(update["action"]["start_listener"]["type"])
          # update = json.dumps(data)
 
          self.wfile.write(OculusSvr().Update(update))
@@ -170,33 +174,66 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
              self.wfile.write(TASKLIST)
           # Else Response
           elif jdata["type"] == "r":
-              print self.data_string
+              print(self.data_string)
               Emergence().Update(self.data_string)
 
       else:
-         #print self.path
+         #print(self.path)
          SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
 
 class Emergence:
    # /api/update || POST request to Emergence for MongoDB update
+   def Auth(self, username, password):
+       session = requests.Session()
+       res = session.post('http://127.0.0.1:29001/login?username=' + username + '&password=' + password)
+       #print(session.cookies.get_dict()['connect.sid'])
+       #cookie = res.cookies[0]
+       #print(cookie.name)
+
+       return session.cookies.get_dict()
+
    def Update(self, apirequest):
       # Send JSON POST urllib or something
       eUpdate = json.loads(apirequest)
 
-      requests.post('http://localhost:29001/api/update', data=eUpdate)
+      tmp = requests.post('http://localhost:29001/api/update', data=eUpdate, cookies=sid)
+      print tmp.text
       return
 
    def Get(self, apirequest):
       # Send JSON POST urllib or something
-      res = requests.post('http://localhost:29001/api/get', data=apirequest)
+      res = requests.post('http://localhost:29001/api/get', data=apirequest, cookies=sid)
       data = res.text
-      tasklist = json.dumps(data)
+
+      try:
+          #Not the CPU optimal way to do this
+          if "failed login" in res.text:
+              print("Attempting to reauthenticate...")
+              global sid
+              sid = Emergence().Auth(USER, PASS)
+              if "failed login" in sid:
+                  print("[!] Authentication Failed! Retrying in 5s")
+                  time.sleep(5)
+              else:
+                  print("Authentication Successful!")
+      except:
+          print("Failed to reauthenticate, sleeping for 5s.")
+          time.sleep(5)
       #data = "retinfo"
       return data
 
 # Start server
-print "Starting..."
+print("Authenticating to Emergence Fabric...\n User: " + USER + "\n Password: " + PASS)
+sid = Emergence().Auth(USER, PASS)
+
+if "connect" in str(sid):
+    print("Authentication Successful!")
+else:
+    print("[!] Authentication Failed! Retrying in 5s")
+    time.sleep(5)
+
+print("Starting...")
 
 TASKLIST = '''{
 "agentid": "1",
