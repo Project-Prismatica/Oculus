@@ -165,6 +165,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
           self.data_string = self.rfile.read(int(self.headers['Content-Length']))
 
           # Get agentid
+          print(self.data_string)
           jdata = json.loads(self.data_string)
           # If beacon
           if jdata["type"] == "b":
@@ -176,6 +177,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
           elif jdata["type"] == "r":
               print(self.data_string)
               Emergence().Update(self.data_string)
+          # Else Upload
+          elif jdata["type"] == "u":
+              print(self.data_string)
+              Emergence().Upload(jdata)
 
       else:
          #print(self.path)
@@ -222,6 +227,14 @@ class Emergence:
           time.sleep(5)
       #data = "retinfo"
       return data
+
+   def Upload(self, file):
+      files = {'filename':open(file["filename"],'rb')}
+      values = {'filename': file["filename"]}
+      url = "http://127.0.0.1:29001/api/up"
+
+
+      r = requests.post(url, files=files, cookies=sid)
 
 # Start server
 print("Authenticating to Emergence Fabric...\n User: " + USER + "\n Password: " + PASS)
