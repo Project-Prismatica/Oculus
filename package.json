@@ -14,7 +14,7 @@
   "author": "Matthew Toussain (0sm0s1z)",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.16.2"
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "nodemon": "^1.14.11"
